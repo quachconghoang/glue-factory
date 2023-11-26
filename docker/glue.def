@@ -1,0 +1,33 @@
+Bootstrap: docker
+From: nvidia/cuda:11.8.0-devel-ubuntu22.04
+
+%labels
+	MAINTAINER hoangqc
+	WHATAMI Ubuntu 22.04 LTS with GlueFactory
+
+%environment
+	export LANG=en_AU.UTF-8
+	export LANGUAGE=en_AU.UTF-8
+	export LC_TYPE=en_AU.UTF-8
+
+%post
+### ### mkdir -p /data /projects /scratch
+	apt-get -y update
+	apt-get install -y tar unzip bash-completion build-essential manpages-dev wget bzip2 ca-certificates curl git make gcc
+	apt-get install -y curl grep sed dpkg locales language-pack-en
+	apt-get install -y libceres-dev libceres2 libeigen3-dev cmake
+	apt-get install -y python3 python3-pip python3-scipy python3-numpy python-is-python3
+	python -m pip install --upgrade pip
+	pip3 install torch torchvision  --index-url https://download.pytorch.org/whl/cu118
+	
+### installing python libs
+	cd home
+	git clone https://github.com/cvg/glue-factory
+	cd glue-factory
+	python -m pip install -e .
+	cd ..
+
+	
+
+	
+

@@ -16,7 +16,7 @@ From: nvidia/cuda:11.8.0-devel-ubuntu22.04
 	apt-get install -y tar unzip bash-completion build-essential manpages-dev wget bzip2 ca-certificates curl git make gcc
 	apt-get install -y curl grep sed dpkg locales language-pack-en
 	apt-get install -y libceres-dev libceres2 libeigen3-dev cmake
-	apt-get install -y python3 python3-pip python3-scipy python3-numpy python-is-python3
+	apt-get install -y python3 python3-pip python-is-python3
 	python -m pip install --upgrade pip
 	pip3 install torch torchvision  --index-url https://download.pytorch.org/whl/cu118
 	

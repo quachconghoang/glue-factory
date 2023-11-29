@@ -9,6 +9,9 @@ From: nvidia/cuda:11.8.0-devel-ubuntu22.04
 	export LANG=en_AU.UTF-8
 	export LANGUAGE=en_AU.UTF-8
 	export LC_TYPE=en_AU.UTF-8
+###	export USER_DATASETS=/projects/hcquach_proj/Datasets/
+###	export USER_SCRATCH=/scratch/hcquach/
+###	export USER_SANDBOX=~/data/Sandbox/
 
 %post
 	mkdir -p /data /projects /scratch
@@ -19,19 +22,18 @@ From: nvidia/cuda:11.8.0-devel-ubuntu22.04
 	apt-get install -y python3 python3-pip python-is-python3
 	python -m pip install --upgrade pip
 	pip3 install torch torchvision  --index-url https://download.pytorch.org/whl/cu118
+
+	pip3 install numpy scipy opencv-python tqdm matplotlib h5py
+	pip3 install omegaconf tensorboard albumentations kornia seaborn joblib
 	pip3 install natsort
 
 ### installing python libs
-	cd home
-	git clone https://github.com/cvg/glue-factory
-	cd glue-factory
-	python -m pip install -e .
-	cd ..
+###	cd home
+###	git clone https://github.com/cvg/glue-factory
+###	cd glue-factory
+###	python -m pip install -e .
+###	cd ..
 
 ### command sandbox:	singularity build --sandbox --fakeroot glue.def
 ### command sif:	    singularity build --fakeroot glue.sif glue.def
 ### run sandbox shell:	singularity shell --nv glue.sif
-	
-
-	
-

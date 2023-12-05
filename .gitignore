@@ -6,4 +6,5 @@
 /venv/
 /data/
 /outputs/
+/gluefactory/settings.py
 __pycache__

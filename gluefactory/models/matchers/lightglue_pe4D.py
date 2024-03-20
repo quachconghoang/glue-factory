@@ -339,9 +339,9 @@ class LightGlue4D(nn.Module):
             self.input_proj = nn.Identity()
 
         head_dim = conf.descriptor_dim // conf.num_heads
-        self.posenc = LearnableFourierPositionalEncoding(
-            2 + 2 * conf.add_scale_ori, head_dim, head_dim
-        )
+        # self.posenc = LearnableFourierPositionalEncoding(2 + 2 * conf.add_scale_ori, head_dim, head_dim)
+        ### 4D Wr ftw
+        self.posenc = LearnableFourierPositionalEncoding(4 + 2 * conf.add_scale_ori, head_dim, head_dim)
 
         h, n, d = conf.num_heads, conf.n_layers, conf.descriptor_dim
 

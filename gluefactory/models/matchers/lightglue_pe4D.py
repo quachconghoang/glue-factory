@@ -345,14 +345,10 @@ class LightGlue4D(nn.Module):
 
         h, n, d = conf.num_heads, conf.n_layers, conf.descriptor_dim
 
-        self.transformers = nn.ModuleList(
-            [TransformerLayer(d, h, conf.flash) for _ in range(n)]
-        )
+        self.transformers = nn.ModuleList([TransformerLayer(d, h, conf.flash) for _ in range(n)])
 
         self.log_assignment = nn.ModuleList([MatchAssignment(d) for _ in range(n)])
-        self.token_confidence = nn.ModuleList(
-            [TokenConfidence(d) for _ in range(n - 1)]
-        )
+        self.token_confidence = nn.ModuleList([TokenConfidence(d) for _ in range(n - 1)])
 
         self.loss_fn = NLLLoss(conf.loss)
 
@@ -362,9 +358,7 @@ class LightGlue4D(nn.Module):
             if Path(conf.weights).exists():
                 state_dict = torch.load(conf.weights, map_location="cpu")
             elif (Path(DATA_PATH) / conf.weights).exists():
-                state_dict = torch.load(
-                    str(DATA_PATH / conf.weights), map_location="cpu"
-                )
+                state_dict = torch.load(str(DATA_PATH / conf.weights), map_location="cpu")
             else:
                 fname = (
                     f"{conf.weights}_{conf.weights_from_version}".replace(".", "-")

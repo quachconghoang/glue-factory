@@ -359,23 +359,23 @@ class LightGlue4D(nn.Module):
                 state_dict = torch.load(conf.weights, map_location="cpu")
             elif (Path(DATA_PATH) / conf.weights).exists():
                 state_dict = torch.load(str(DATA_PATH / conf.weights), map_location="cpu")
-            else:
-                fname = (
-                    f"{conf.weights}_{conf.weights_from_version}".replace(".", "-")
-                    + ".pth"
-                )
-                state_dict = torch.hub.load_state_dict_from_url(
-                    self.url.format(conf.weights_from_version, conf.weights),
-                    file_name=fname,
-                )
+            # else:
+            #     fname = (
+            #         f"{conf.weights}_{conf.weights_from_version}".replace(".", "-")
+            #         + ".pth"
+            #     )
+            #     state_dict = torch.hub.load_state_dict_from_url(
+            #         self.url.format(conf.weights_from_version, conf.weights),
+            #         file_name=fname,
+            #     )
 
         if state_dict:
             # rename old state dict entries
-            for i in range(self.conf.n_layers):
-                pattern = f"self_attn.{i}", f"transformers.{i}.self_attn"
-                state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
-                pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
-                state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+            # for i in range(self.conf.n_layers):
+            #     pattern = f"self_attn.{i}", f"transformers.{i}.self_attn"
+            #     state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+            #     pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
+            #     state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
             self.load_state_dict(state_dict, strict=False)
 
     def compile(self, mode="reduce-overhead"):
@@ -435,8 +435,11 @@ class LightGlue4D(nn.Module):
         desc0 = self.input_proj(desc0)
         desc1 = self.input_proj(desc1)
         # cache positional embeddings
-        encoding0 = self.posenc(kpts0)
-        encoding1 = self.posenc(kpts1)
+
+        _kpts0 = F.pad(input=kpts0, pad=(0, 2, 0, 0), mode='constant', value=0)
+        _kpts1 = F.pad(input=kpts1, pad=(0, 2, 0, 0), mode='constant', value=0)
+        encoding0 = self.posenc(_kpts0)
+        encoding1 = self.posenc(_kpts1)
 
         # GNN + final_proj + assignment
         do_early_stop = self.conf.depth_confidence > 0 and not self.training
@@ -509,9 +512,10 @@ class LightGlue4D(nn.Module):
             "matches1": m1,
             "matching_scores0": mscores0,
             "matching_scores1": mscores1,
-            "ref_descriptors0": torch.stack(all_desc0, 1),
-            "ref_descriptors1": torch.stack(all_desc1, 1),
-            "log_assignment": scores,
+            "stop": i + 1, ### Extra by HoangQC - debuggings?
+            "ref_descriptors0": torch.stack(all_desc0, 1), ### Comments: for debugging?
+            "ref_descriptors1": torch.stack(all_desc1, 1), ### Comments: for debugging?
+            "log_assignment": scores, ### Comments: for debugging? Meaning?
             "prune0": prune0,
             "prune1": prune1,
         }

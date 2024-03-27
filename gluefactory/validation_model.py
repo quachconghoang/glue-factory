@@ -35,12 +35,12 @@ from lightglue import viz2d
 from matplotlib import pyplot as plt
 axes = viz2d.plot_images([image0, image1])
 viz2d.plot_matches(m_kpts0, m_kpts1, color="lime", lw=0.2)
-viz2d.adduh_text(0, f'Stop after {matches01["stop"]} layers')
-# viz2d.save_plot(images/"matches_debug.png")
-plt.show()
+viz2d.add_text(0, f'Stop after {matches01["stop"]} layers')
+viz2d.save_plot(images/"matches_debug.png")
+# plt.show()
 
 kpc0, kpc1 = viz2d.cm_prune(matches01["prune0"]), viz2d.cm_prune(matches01["prune1"])
 viz2d.plot_images([image0, image1])
 viz2d.plot_keypoints([kpts0, kpts1], colors=[kpc0, kpc1], ps=6)
-# viz2d.save_plot(images/"matches_prune.png")
-plt.show()
+viz2d.save_plot(images/"matches_prune.png")
+# plt.show()

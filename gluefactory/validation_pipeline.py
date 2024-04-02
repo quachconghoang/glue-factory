@@ -684,7 +684,7 @@ if __name__ == "__main__":
         shutil.copytree(mod_dir, output_dir / module, dirs_exist_ok=True)
 
     # main_worker(0, conf, output_dir, args)
-    # training(0, conf, output_dir, args)
+    training(0, conf, output_dir, args)
 
     conf.train = OmegaConf.merge(default_train_conf, conf.train)
     data_conf = copy.deepcopy(conf.data)

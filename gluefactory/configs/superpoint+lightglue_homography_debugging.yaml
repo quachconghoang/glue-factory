@@ -1,10 +1,10 @@
 data:
-    name: homographies
+    name: homographies_extended
     data_dir: revisitop1m
     train_size: 150000
     val_size: 2000
-    batch_size: 64
-    num_workers: 4 #8 is default
+    batch_size: 1
+    num_workers: 1 #8 is default
     homography:
         difficulty: 0.7
         max_angle: 45

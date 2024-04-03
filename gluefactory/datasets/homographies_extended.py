@@ -260,18 +260,18 @@ class _Dataset(torch.utils.data.Dataset):
             "view1": data1,
         }
 
-        if self.conf.triplet:
-            # Generate third image
-            data2 = self._read_view(img, self.conf.homography, ps, left=False)
-            H02 = compute_homography(data0["coords"], data2["coords"], [1, 1])
-            H12 = compute_homography(data1["coords"], data2["coords"], [1, 1])
-
-            data = {
-                "H_0to2": H02.astype(np.float32),
-                "H_1to2": H12.astype(np.float32),
-                "view2": data2,
-                **data,
-            }
+        # if self.conf.triplet:
+        #     # Generate third image
+        #     data2 = self._read_view(img, self.conf.homography, ps, left=False)
+        #     H02 = compute_homography(data0["coords"], data2["coords"], [1, 1])
+        #     H12 = compute_homography(data1["coords"], data2["coords"], [1, 1])
+        #
+        #     data = {
+        #         "H_0to2": H02.astype(np.float32),
+        #         "H_1to2": H12.astype(np.float32),
+        #         "view2": data2,
+        #         **data,
+        #     }
 
         return data
 

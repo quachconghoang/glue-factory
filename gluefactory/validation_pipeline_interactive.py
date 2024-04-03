@@ -1,42 +1,29 @@
 """
-A generic training script that works with any model and dataset.
-
 Author: Paul-Edouard Sarlin (skydes)
 Modder: Hoang-QC
 """
 
 import argparse
 import copy
-import re
 import shutil
-import signal
-from collections import defaultdict
 from pathlib import Path
-from pydoc import locate
 
 import numpy as np
 import torch
 from omegaconf import OmegaConf
-from torch.cuda.amp import GradScaler, autocast
-from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
+
 
 from gluefactory import __module_name__, logger
 from gluefactory.datasets import get_dataset
-from gluefactory.eval import run_benchmark
-from gluefactory.models import get_model
 from gluefactory.settings import EVAL_PATH, TRAINING_PATH
-from gluefactory.utils.experiments import get_best_checkpoint, get_last_checkpoint, save_experiment
-from gluefactory.utils.stdout_capturing import capture_outputs
-from gluefactory.utils.tensor import batch_to_device
-from gluefactory.utils.tools import (
-    AverageMetric,
-    MedianMetric,
-    PRMetric,
-    RecallMetric,
-    fork_rng,
-    set_seed,
+from gluefactory.utils.image import read_image
+from gluefactory.geometry.homography import (
+    compute_homography,
+    sample_homography_corners,
+    warp_points,
 )
+
+from matplotlib import pyplot as plt
 
 # dumb_exp --conf=configs/superpoint+lightglue_homography_debugging.yaml
 import sys
@@ -153,6 +140,60 @@ val_data_conf = conf.get("data_val", None)
 val_dataset = dataset
 
 train_loader = dataset.get_data_loader("train", distributed=args.distributed)
+homo_dataset = train_loader.dataset
 # val_loader = val_dataset.get_data_loader("val")
 
-imgs = next(iter(train_loader))
+# imgs = next(iter(train_loader))
+
+# idx = 56014
+
+# imgs = train_loader.dataset.getitem(56014)
+# data0 = imgs['view0']
+# data1 = imgs['view1']
+
+# raw_img = read_image(train_loader.dataset.image_dir / imgs['name'], False)
+
+img_name = '806/8061785ce4cc7e30d72de131fcfb42.jpg'
+raw_img = read_image(homo_dataset.image_dir / img_name, False)
+img = raw_img.astype(np.float32) / 255.0
+size = img.shape[:2][::-1]
+
+ps = homo_dataset.conf.homography.patch_shape
+left_conf = OmegaConf.to_container(homo_dataset.conf.homography)
+
+data0 = homo_dataset._read_view(img, left_conf, ps, left=True)
+data0_ext = homo_dataset._read_view(img, left_conf, ps, left=True)
+data1 = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
+data1_ext = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
+
+H_0to1 = compute_homography(data0["coords"], data1["coords"], [1, 1])
+H_ext0 = compute_homography(data0["coords"], data0_ext["coords"], [1, 1])
+H_ext1 = compute_homography(data1["coords"], data1_ext["coords"], [1, 1])
+
+center_point = torch.tensor([[320,240]])
+point_ext0 = warp_points(center_point,H_ext0,inverse=False)
+point_ext1 = warp_points(center_point,H_ext1,inverse=False)
+
+plt.imshow(raw_img);plt.show()
+
+img0 = data0['image'].permute(1, 2, 0).numpy()
+img0_ext = data0_ext['image'].permute(1, 2, 0).numpy()
+img1 = data1['image'].permute(1, 2, 0).numpy()
+img1_ext = data1_ext['image'].permute(1, 2, 0).numpy()
+
+plt.imshow(data0['image'].permute(1, 2, 0));plt.show()
+plt.imshow(data0_ext['image'].permute(1, 2, 0));plt.show()
+plt.imshow(data1['image'].permute(1, 2, 0));plt.show()
+plt.imshow(data1_ext['image'].permute(1, 2, 0));plt.show()
+
+import cv2 as cv
+img0_x = cv.circle(img0,center=(320, 240), radius=5, color=(1,0,0),thickness=3)
+img0_ext_x = cv.circle(img0_ext,center=(int(point_ext0[0][0]), int(point_ext0[0][1])), radius=5, color=(1,0,0),thickness=3)
+
+img1_x = cv.circle(img1,center=(320, 240), radius=5, color=(1,1,0),thickness=3)
+img1_ext_x = cv.circle(img1_ext,center=(int(point_ext1[0][0]), int(point_ext1[0][1])), radius=5, color=(1,1,0),thickness=3)
+
+plt.imshow(img0_x);plt.show()
+plt.imshow(img0_ext_x);plt.show()
+plt.imshow(img1_x);plt.show()
+plt.imshow(img1_ext_x);plt.show()

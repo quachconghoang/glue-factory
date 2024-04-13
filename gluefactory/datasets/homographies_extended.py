@@ -34,7 +34,7 @@ from gluefactory.datasets.base_dataset import BaseDataset
 logger = logging.getLogger(__name__)
 
 
-def sample_homography(img, conf: dict, size: list):
+def sample_homography(img, conf: dict, size: list): ### NEED TO CHANGE
     data = {}
     H, _, coords, _ = sample_homography_corners(img.shape[:2][::-1], **conf)
     data["image"] = cv2.warpPerspective(img, H, tuple(size))
@@ -43,6 +43,13 @@ def sample_homography(img, conf: dict, size: list):
     data["image_size"] = np.array(size, dtype=np.float32)
     return data
 
+def findRotation(cx: float, cy: float, H: np.array):
+    ct = np.array([cx, cy, 1])
+    p = np.dot(H, ct)
+    pw = np.array([p[0] / p[2], p[1] / p[2]])  # Warp Center
+    rx = - (pw[0] - cx) / cx  # Right -> +
+    ry = (pw[1] - cy) / cy  # Up -> +
+    return np.array([rx, ry])
 
 class HomographyExtendedDataset(BaseDataset):
     default_conf = {
@@ -247,17 +254,36 @@ class _Dataset(torch.utils.data.Dataset):
             left_conf["difficulty"] = 0.0
 
         data0 = self._read_view(img, left_conf, ps, left=True)
+        data0_ext = self._read_view(img, left_conf, ps, left=True)
         data1 = self._read_view(img, self.conf.homography, ps, left=False)
+        data1_ext = self._read_view(img, self.conf.homography, ps, left=False)
 
         H = compute_homography(data0["coords"], data1["coords"], [1, 1])
+        H_0toExt = compute_homography(data0["coords"], data0_ext["coords"], [1, 1])
+        H_1toExt = compute_homography(data1["coords"], data1_ext["coords"], [1, 1])
+
+        cx = ps[0]/2
+        cy = ps[1]/2
+        r0 = self.findRotation(cx=cx, cy=cy, H=H_0toExt)
+        r1 = self.findRotation(cx=cx, cy=cy, H=H_1toExt)
+
+        ### Insert Rotation Keys
+        data0.update({'R': np.array([0,0])})
+        data1.update({'R': np.array([0,0])})
+        data0_ext.update({'R': r0})
+        data1_ext.update({'R': r1})
 
         data = {
             "name": name,
             "original_image_size": np.array(size),
             "H_0to1": H.astype(np.float32),
+            # "H_ext0": H_0toExt,
+            # "H_ext1": H_1toExt,
             "idx": idx,
             "view0": data0,
             "view1": data1,
+            "view_ext0": data0_ext,
+            "view_ext1": data1_ext
         }
 
         # if self.conf.triplet:

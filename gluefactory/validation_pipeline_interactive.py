@@ -23,6 +23,9 @@ from gluefactory.geometry.homography import (
     warp_points,
 )
 
+from gluefactory.models import get_model
+
+
 from matplotlib import pyplot as plt
 
 # dumb_exp --conf=configs/superpoint+lightglue_homography_debugging.yaml
@@ -155,11 +158,21 @@ homo_dataset = train_loader.dataset
 
 img_name = '806/8061785ce4cc7e30d72de131fcfb42.jpg'
 raw_img = read_image(homo_dataset.image_dir / img_name, False)
+plt.imshow(raw_img);plt.show()
+
 img = raw_img.astype(np.float32) / 255.0
 size = img.shape[:2][::-1]
 
 ps = homo_dataset.conf.homography.patch_shape
 left_conf = OmegaConf.to_container(homo_dataset.conf.homography)
+
+def convertRotation(cx: float, cy: float, H:  np.array):
+    ct = np.array([cx,cy,1])
+    p = np.dot(H, ct)
+    pw = np.array([p[0]/p[2], p[1]/p[2]]) # Warp Center
+    rx = - (pw[0] - cx) / cx # Right -> +
+    ry = (pw[1] - cy) / cy # Up -> +
+    return np.array([rx,ry]), pw
 
 data0 = homo_dataset._read_view(img, left_conf, ps, left=True)
 data0_ext = homo_dataset._read_view(img, left_conf, ps, left=True)
@@ -170,30 +183,31 @@ H_0to1 = compute_homography(data0["coords"], data1["coords"], [1, 1])
 H_ext0 = compute_homography(data0["coords"], data0_ext["coords"], [1, 1])
 H_ext1 = compute_homography(data1["coords"], data1_ext["coords"], [1, 1])
 
-center_point = torch.tensor([[320,240]])
-point_ext0 = warp_points(center_point,H_ext0,inverse=False)
-point_ext1 = warp_points(center_point,H_ext1,inverse=False)
+cx = ps[0]/2
+cy = ps[1]/2
+rw0, pw0 = convertRotation(cx,cy,H_ext0)
+rw1, pw1 = convertRotation(cx,cy,H_ext1)
 
-plt.imshow(raw_img);plt.show()
+# center_point = torch.tensor([[320,240]])
+# point_ext0 = warp_points(center_point,H_ext0,inverse=False)
+# point_ext1 = warp_points(center_point,H_ext1,inverse=False)
 
 img0 = data0['image'].permute(1, 2, 0).numpy()
 img0_ext = data0_ext['image'].permute(1, 2, 0).numpy()
 img1 = data1['image'].permute(1, 2, 0).numpy()
 img1_ext = data1_ext['image'].permute(1, 2, 0).numpy()
 
-plt.imshow(data0['image'].permute(1, 2, 0));plt.show()
-plt.imshow(data0_ext['image'].permute(1, 2, 0));plt.show()
-plt.imshow(data1['image'].permute(1, 2, 0));plt.show()
-plt.imshow(data1_ext['image'].permute(1, 2, 0));plt.show()
-
 import cv2 as cv
 img0_x = cv.circle(img0,center=(320, 240), radius=5, color=(1,0,0),thickness=3)
-img0_ext_x = cv.circle(img0_ext,center=(int(point_ext0[0][0]), int(point_ext0[0][1])), radius=5, color=(1,0,0),thickness=3)
+img0_ext_x = cv.circle(img0_ext,center=(int(pw0[0]), int(pw0[1])), radius=5, color=(1,0,0),thickness=3)
 
 img1_x = cv.circle(img1,center=(320, 240), radius=5, color=(1,1,0),thickness=3)
-img1_ext_x = cv.circle(img1_ext,center=(int(point_ext1[0][0]), int(point_ext1[0][1])), radius=5, color=(1,1,0),thickness=3)
+img1_ext_x = cv.circle(img1_ext,center=(int(pw1[0]), int(pw1[1])), radius=5, color=(1,1,0),thickness=3)
 
 plt.imshow(img0_x);plt.show()
 plt.imshow(img0_ext_x);plt.show()
 plt.imshow(img1_x);plt.show()
 plt.imshow(img1_ext_x);plt.show()
+
+model = get_model(conf.model.name)(conf.model).to(device)
+model.__f

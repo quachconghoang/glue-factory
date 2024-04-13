@@ -60,6 +60,15 @@ class ExtendedTwoViewPipeline(BaseModel):
                 to_ctr(conf.ground_truth)
             )
 
+    # def extract_view(self, data, i):
+    #     data_i = data[f"view{i}"]
+    #     pred_i = data_i.get("cache", {})
+    #     skip_extract = len(pred_i) > 0 and self.conf.allow_no_extract
+    #     if self.conf.extractor.name and not skip_extract:
+    #         pred_i = {**pred_i, **self.extractor(data_i)}
+    #     elif self.conf.extractor.name and not self.conf.allow_no_extract:
+    #         pred_i = {**pred_i, **self.extractor({**data_i, **pred_i})}
+    #     return pred_i
     def extract_view(self, data, i):
         data_i = data[f"view{i}"]
         pred_i = data_i.get("cache", {})

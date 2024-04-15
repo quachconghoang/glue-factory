@@ -19,7 +19,7 @@ to_ctr = OmegaConf.to_container  # convert DictConfig to dict
 
 
 class ExtendedTwoViewPipeline(BaseModel):
-    print("Hi - It's extended Two-view pipeline: it's likely Two-sequence pipeline :)")
+    # print("Hi - It's extended Two-view pipeline: it's likely Two-sequence pipeline :)")
     default_conf = {
         "extractor": {
             "name": None,
@@ -77,14 +77,25 @@ class ExtendedTwoViewPipeline(BaseModel):
             pred_i = {**pred_i, **self.extractor(data_i)}
         elif self.conf.extractor.name and not self.conf.allow_no_extract:
             pred_i = {**pred_i, **self.extractor({**data_i, **pred_i})}
+
+        ### INSERT_ROTATIONS
+        if 'R' in data_i:
+            pred_i.update({'R':data_i['R']})
+
         return pred_i
 
     def _forward(self, data):
         pred0 = self.extract_view(data, "0")
         pred1 = self.extract_view(data, "1")
+
+        pred0_ext = self.extract_view(data, '0_ext')
+        pred1_ext = self.extract_view(data, '1_ext')
+
         pred = {
             **{k + "0": v for k, v in pred0.items()},
             **{k + "1": v for k, v in pred1.items()},
+            **{k + "0_ext": v for k, v in pred0_ext.items()},
+            **{k + "1_ext": v for k, v in pred1_ext.items()}
         }
 
         if self.conf.matcher.name:

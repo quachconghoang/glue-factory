@@ -239,7 +239,7 @@ class _Dataset(torch.utils.data.Dataset):
         return data
 
     def getitem(self, idx):
-        print('Start cheating now')
+        # print('Start cheating now')
         name = self.image_names[idx]
         img = read_image(self.image_dir / name, False)
         if img is None:
@@ -264,8 +264,8 @@ class _Dataset(torch.utils.data.Dataset):
 
         cx = ps[0]/2
         cy = ps[1]/2
-        r0 = self.findRotation(cx=cx, cy=cy, H=H_0toExt)
-        r1 = self.findRotation(cx=cx, cy=cy, H=H_1toExt)
+        r0 = findRotation(cx=cx, cy=cy, H=H_0toExt)
+        r1 = findRotation(cx=cx, cy=cy, H=H_1toExt)
 
         ### Insert Rotation Keys
         data0.update({'R': np.array([0,0])})
@@ -282,8 +282,8 @@ class _Dataset(torch.utils.data.Dataset):
             "idx": idx,
             "view0": data0,
             "view1": data1,
-            "view_ext0": data0_ext,
-            "view_ext1": data1_ext
+            "view0_ext": data0_ext,
+            "view1_ext": data1_ext
         }
 
         # if self.conf.triplet:

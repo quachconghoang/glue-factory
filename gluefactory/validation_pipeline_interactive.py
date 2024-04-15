@@ -1,8 +1,3 @@
-"""
-Author: Paul-Edouard Sarlin (skydes)
-Modder: Hoang-QC
-"""
-
 import argparse
 import copy
 import shutil
@@ -133,7 +128,8 @@ for module in conf.train.get("submodules", []) + [__module_name__]:
 
 conf.train = OmegaConf.merge(default_train_conf, conf.train)
 data_conf = copy.deepcopy(conf.data)
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 logger.info(f"Using device {device}")
 
 dataset = get_dataset(data_conf.name)(data_conf)
@@ -143,71 +139,90 @@ val_data_conf = conf.get("data_val", None)
 val_dataset = dataset
 
 train_loader = dataset.get_data_loader("train", distributed=args.distributed)
-homo_dataset = train_loader.dataset
-# val_loader = val_dataset.get_data_loader("val")
+val_loader = val_dataset.get_data_loader("val")
 
 # imgs = next(iter(train_loader))
-
 # idx = 56014
-
 # imgs = train_loader.dataset.getitem(56014)
 # data0 = imgs['view0']
 # data1 = imgs['view1']
-
 # raw_img = read_image(train_loader.dataset.image_dir / imgs['name'], False)
 
-img_name = '806/8061785ce4cc7e30d72de131fcfb42.jpg'
-raw_img = read_image(homo_dataset.image_dir / img_name, False)
-plt.imshow(raw_img);plt.show()
+homo_dataset = train_loader.dataset
+def getImagesHomography(homo_dataset):
+    img_name = '806/8061785ce4cc7e30d72de131fcfb42.jpg'
+    raw_img = read_image(homo_dataset.image_dir / img_name, False)
+    plt.imshow(raw_img);
+    plt.show()
 
-img = raw_img.astype(np.float32) / 255.0
-size = img.shape[:2][::-1]
+    img = raw_img.astype(np.float32) / 255.0
+    size = img.shape[:2][::-1]
 
-ps = homo_dataset.conf.homography.patch_shape
-left_conf = OmegaConf.to_container(homo_dataset.conf.homography)
+    ps = homo_dataset.conf.homography.patch_shape
+    left_conf = OmegaConf.to_container(homo_dataset.conf.homography)
 
-def convertRotation(cx: float, cy: float, H:  np.array):
-    ct = np.array([cx,cy,1])
-    p = np.dot(H, ct)
-    pw = np.array([p[0]/p[2], p[1]/p[2]]) # Warp Center
-    rx = - (pw[0] - cx) / cx # Right -> +
-    ry = (pw[1] - cy) / cy # Up -> +
-    return np.array([rx,ry]), pw
+    def convertRotation(cx: float, cy: float, H: np.array):
+        ct = np.array([cx, cy, 1])
+        p = np.dot(H, ct)
+        pw = np.array([p[0] / p[2], p[1] / p[2]])  # Warp Center
+        rx = - (pw[0] - cx) / cx  # Right -> +
+        ry = (pw[1] - cy) / cy  # Up -> +
+        return np.array([rx, ry]), pw
 
-data0 = homo_dataset._read_view(img, left_conf, ps, left=True)
-data0_ext = homo_dataset._read_view(img, left_conf, ps, left=True)
-data1 = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
-data1_ext = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
+    data0 = homo_dataset._read_view(img, left_conf, ps, left=True)
+    data0_ext = homo_dataset._read_view(img, left_conf, ps, left=True)
+    data1 = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
+    data1_ext = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
 
-H_0to1 = compute_homography(data0["coords"], data1["coords"], [1, 1])
-H_ext0 = compute_homography(data0["coords"], data0_ext["coords"], [1, 1])
-H_ext1 = compute_homography(data1["coords"], data1_ext["coords"], [1, 1])
+    H_0to1 = compute_homography(data0["coords"], data1["coords"], [1, 1])
+    H_ext0 = compute_homography(data0["coords"], data0_ext["coords"], [1, 1])
+    H_ext1 = compute_homography(data1["coords"], data1_ext["coords"], [1, 1])
 
-cx = ps[0]/2
-cy = ps[1]/2
-rw0, pw0 = convertRotation(cx,cy,H_ext0)
-rw1, pw1 = convertRotation(cx,cy,H_ext1)
+    cx = ps[0] / 2
+    cy = ps[1] / 2
+    rw0, pw0 = convertRotation(cx, cy, H_ext0)
+    rw1, pw1 = convertRotation(cx, cy, H_ext1)
 
-# center_point = torch.tensor([[320,240]])
-# point_ext0 = warp_points(center_point,H_ext0,inverse=False)
-# point_ext1 = warp_points(center_point,H_ext1,inverse=False)
+    # center_point = torch.tensor([[320,240]])
+    # point_ext0 = warp_points(center_point,H_ext0,inverse=False)
+    # point_ext1 = warp_points(center_point,H_ext1,inverse=False)
 
-img0 = data0['image'].permute(1, 2, 0).numpy()
-img0_ext = data0_ext['image'].permute(1, 2, 0).numpy()
-img1 = data1['image'].permute(1, 2, 0).numpy()
-img1_ext = data1_ext['image'].permute(1, 2, 0).numpy()
+    img0 = data0['image'].permute(1, 2, 0).numpy()
+    img0_ext = data0_ext['image'].permute(1, 2, 0).numpy()
+    img1 = data1['image'].permute(1, 2, 0).numpy()
+    img1_ext = data1_ext['image'].permute(1, 2, 0).numpy()
 
-import cv2 as cv
-img0_x = cv.circle(img0,center=(320, 240), radius=5, color=(1,0,0),thickness=3)
-img0_ext_x = cv.circle(img0_ext,center=(int(pw0[0]), int(pw0[1])), radius=5, color=(1,0,0),thickness=3)
+    import cv2 as cv
+    img0_x = cv.circle(img0, center=(320, 240), radius=5, color=(1, 0, 0), thickness=3)
+    img0_ext_x = cv.circle(img0_ext, center=(int(pw0[0]), int(pw0[1])), radius=5, color=(1, 0, 0), thickness=3)
 
-img1_x = cv.circle(img1,center=(320, 240), radius=5, color=(1,1,0),thickness=3)
-img1_ext_x = cv.circle(img1_ext,center=(int(pw1[0]), int(pw1[1])), radius=5, color=(1,1,0),thickness=3)
+    img1_x = cv.circle(img1, center=(320, 240), radius=5, color=(1, 1, 0), thickness=3)
+    img1_ext_x = cv.circle(img1_ext, center=(int(pw1[0]), int(pw1[1])), radius=5, color=(1, 1, 0), thickness=3)
 
-plt.imshow(img0_x);plt.show()
-plt.imshow(img0_ext_x);plt.show()
-plt.imshow(img1_x);plt.show()
-plt.imshow(img1_ext_x);plt.show()
+    # plt.imshow(img0_x);plt.show()
+    # plt.imshow(img0_ext_x);plt.show()
+    # plt.imshow(img1_x);plt.show()
+    # plt.imshow(img1_ext_x);plt.show()
 
+
+# data = train_loader.dataset.getitem(56014)
+data = next(iter(train_loader))
 model = get_model(conf.model.name)(conf.model).to(device)
-model.__f
+
+pred0 = model.extract_view(data,'0')
+pred0_ext = model.extract_view(data,'0_ext')
+pred1 = model.extract_view(data,'1')
+pred1_ext = model.extract_view(data,'1_ext')
+
+### AMEN!!!
+pred = {
+    **{k + "0": v for k, v in pred0.items()},
+    **{k + "1": v for k, v in pred1.items()},
+    **{k + "0_ext": v for k, v in pred0_ext.items()},
+    **{k + "1_ext": v for k, v in pred1_ext.items()}
+}
+pred = {**pred, **model.matcher({**data, **pred})}
+
+### CALCULATE LOSS
+# pred = model(data)
+model.loss(pred,data)

@@ -49,7 +49,7 @@ def findRotation(cx: float, cy: float, H: np.array):
     pw = np.array([p[0] / p[2], p[1] / p[2]])  # Warp Center
     rx = - (pw[0] - cx) / cx  # Right -> +
     ry = (pw[1] - cy) / cy  # Up -> +
-    return np.array([rx, ry])
+    return np.array([rx, ry],dtype=np.float32)
 
 class HomographyExtendedDataset(BaseDataset):
     default_conf = {

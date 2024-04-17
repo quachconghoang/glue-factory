@@ -12,7 +12,6 @@ from gluefactory import __module_name__, logger
 from gluefactory.datasets import get_dataset
 from gluefactory.settings import EVAL_PATH, TRAINING_PATH
 from gluefactory.utils.image import read_image
-from gluefactory.utils.tensor import batch_to_device
 from gluefactory.geometry.homography import (
     compute_homography,
     sample_homography_corners,
@@ -126,117 +125,46 @@ for module in conf.train.get("submodules", []) + [__module_name__]:
     mod_dir = Path(__import__(str(module)).__file__).parent
     shutil.copytree(mod_dir, output_dir / module, dirs_exist_ok=True)
 
-# main_worker(0, conf, output_dir, args)
-# training(0, conf, output_dir, args)
-
 conf.train = OmegaConf.merge(default_train_conf, conf.train)
 data_conf = copy.deepcopy(conf.data)
-device = "cuda" if torch.cuda.is_available() else "cpu"
-# device = "cpu"
+# device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 logger.info(f"Using device {device}")
 
-dataset = get_dataset(data_conf.name)(data_conf)
-
-# Optionally load a different validation dataset than the training one
-val_data_conf = conf.get("data_val", None)
-val_dataset = dataset
-
-train_loader = dataset.get_data_loader("train", distributed=args.distributed)
-val_loader = val_dataset.get_data_loader("val")
-
-# imgs = next(iter(train_loader))
-# idx = 56014
-# imgs = train_loader.dataset.getitem(56014)
-# data0 = imgs['view0']
-# data1 = imgs['view1']
-# raw_img = read_image(train_loader.dataset.image_dir / imgs['name'], False)
-
-homo_dataset = train_loader.dataset
-def getImagesHomography(homo_dataset):
-    img_name = '806/8061785ce4cc7e30d72de131fcfb42.jpg'
-    raw_img = read_image(homo_dataset.image_dir / img_name, False)
-    plt.imshow(raw_img);
-    plt.show()
-
-    img = raw_img.astype(np.float32) / 255.0
-    size = img.shape[:2][::-1]
-
-    ps = homo_dataset.conf.homography.patch_shape
-    left_conf = OmegaConf.to_container(homo_dataset.conf.homography)
-
-    def convertRotation(cx: float, cy: float, H: np.array):
-        ct = np.array([cx, cy, 1])
-        p = np.dot(H, ct)
-        pw = np.array([p[0] / p[2], p[1] / p[2]])  # Warp Center
-        rx = - (pw[0] - cx) / cx  # Right -> +
-        ry = (pw[1] - cy) / cy  # Up -> +
-        return np.array([rx, ry]), pw
-
-    data0 = homo_dataset._read_view(img, left_conf, ps, left=True)
-    data0_ext = homo_dataset._read_view(img, left_conf, ps, left=True)
-    data1 = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
-    data1_ext = homo_dataset._read_view(img, homo_dataset.conf.homography, ps, left=False)
-
-    H_0to1 = compute_homography(data0["coords"], data1["coords"], [1, 1])
-    H_ext0 = compute_homography(data0["coords"], data0_ext["coords"], [1, 1])
-    H_ext1 = compute_homography(data1["coords"], data1_ext["coords"], [1, 1])
-
-    cx = ps[0] / 2
-    cy = ps[1] / 2
-    rw0, pw0 = convertRotation(cx, cy, H_ext0)
-    rw1, pw1 = convertRotation(cx, cy, H_ext1)
-
-    # center_point = torch.tensor([[320,240]])
-    # point_ext0 = warp_points(center_point,H_ext0,inverse=False)
-    # point_ext1 = warp_points(center_point,H_ext1,inverse=False)
-
-    img0 = data0['image'].permute(1, 2, 0).numpy()
-    img0_ext = data0_ext['image'].permute(1, 2, 0).numpy()
-    img1 = data1['image'].permute(1, 2, 0).numpy()
-    img1_ext = data1_ext['image'].permute(1, 2, 0).numpy()
-
-    import cv2 as cv
-    img0_x = cv.circle(img0, center=(320, 240), radius=5, color=(1, 0, 0), thickness=3)
-    img0_ext_x = cv.circle(img0_ext, center=(int(pw0[0]), int(pw0[1])), radius=5, color=(1, 0, 0), thickness=3)
-
-    img1_x = cv.circle(img1, center=(320, 240), radius=5, color=(1, 1, 0), thickness=3)
-    img1_ext_x = cv.circle(img1_ext, center=(int(pw1[0]), int(pw1[1])), radius=5, color=(1, 1, 0), thickness=3)
-
-    # plt.imshow(img0_x);plt.show()
-    # plt.imshow(img0_ext_x);plt.show()
-    # plt.imshow(img1_x);plt.show()
-    # plt.imshow(img1_ext_x);plt.show()
-
-
-
-data = next(iter(train_loader))
-data = batch_to_device(data, device, non_blocking=True)
 model = get_model(conf.model.name)(conf.model).to(device)
 
-# pred0 = model.extract_view(data,'0')
-# pred0_ext = model.extract_view(data,'0_ext')
-# pred1 = model.extract_view(data,'1')
-# pred1_ext = model.extract_view(data,'1_ext')
-#
-# ### AMEN!!!
-# pred = {
-#     **{k + "0": v for k, v in pred0.items()},
-#     **{k + "1": v for k, v in pred1.items()},
-#     **{k + "0_ext": v for k, v in pred0_ext.items()},
-#     **{k + "1_ext": v for k, v in pred1_ext.items()}
-# }
+with open(DATA_PATH/'data.pkl', 'rb') as fp:
+    data = pickle.load(fp)
 
-pred = model(data)
+with open(DATA_PATH/'pred_pre.pkl', 'rb') as fp:
+    pred = pickle.load(fp)
+
 pred = {**pred, **model.matcher({**data, **pred})}
 
-
-# with open(DATA_PATH/'data.pkl', 'wb') as fp:
-#     pickle.dump(data, fp)
-# with open(DATA_PATH/'pred_pre.pkl', 'wb') as fp:
-#     pickle.dump(pred, fp)
-
-### load cache
-
-### CALCULATE LOSS
-# pred = model(data)
-# model.loss(pred,data)
+# desc0 = pred["descriptors0"].contiguous()
+# desc1 = pred["descriptors1"].contiguous()
+# desc0_ext = pred["descriptors0_ext"].contiguous()
+# desc1_ext = pred["descriptors1_ext"].contiguous()
+# desc0 = torch.cat((desc0,desc0_ext),1)
+# desc1 = torch.cat((desc1,desc1_ext),1)
+#
+# kpts0, kpts1 = pred["keypoints0"], pred["keypoints1"]
+# kpts0_ext, kpts1_ext = pred["keypoints0_ext"], pred["keypoints1_ext"]
+# R0_ext = pred['R0_ext']
+# R1_ext = pred['R1_ext']
+#
+# import torch.nn.functional as F
+# _kpts0 = F.pad(input=kpts0, pad=(0, 2, 0, 0), mode='constant', value=0)
+# _kpts1 = F.pad(input=kpts1, pad=(0, 2, 0, 0), mode='constant', value=0)
+# _kpts0_ext = F.pad(input=kpts0_ext, pad=(0, 2, 0, 0), mode='constant', value=0)
+# _kpts1_ext = F.pad(input=kpts1_ext, pad=(0, 2, 0, 0), mode='constant', value=0)
+#
+# R0_ext = R0_ext.type(torch.float32)
+# R1_ext = R1_ext.type(torch.float32)
+#
+# for i in range(R0_ext.shape[0]):
+#     _kpts0_ext[i, :, 2:4] = R0_ext[i]
+#     _kpts1_ext[i, :, 2:4] = R1_ext[i]
+#
+# _kpts0 = torch.cat((_kpts0,_kpts0_ext),1)
+# _kpts1 = torch.cat((_kpts1,_kpts1_ext),1)

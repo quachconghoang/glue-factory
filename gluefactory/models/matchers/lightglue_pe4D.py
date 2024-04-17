@@ -376,6 +376,7 @@ class LightGlue4D(nn.Module):
             #     state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
             #     pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
             #     state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+            print("Loading parameters: ", conf.weights)
             self.load_state_dict(state_dict, strict=False)
 
     def compile(self, mode="reduce-overhead"):
@@ -432,12 +433,37 @@ class LightGlue4D(nn.Module):
         if torch.is_autocast_enabled():
             desc0 = desc0.half()
             desc1 = desc1.half()
-        desc0 = self.input_proj(desc0)
-        desc1 = self.input_proj(desc1)
-        # cache positional embeddings
 
+        ### Load ext
+        kpts0_ext, kpts1_ext = data["keypoints0_ext"], data["keypoints1_ext"]
+        if "view0_ext" in data.keys() and "view1_ext" in data.keys():
+            size0_ext = data["view0_ext"].get("image_size")
+            size1_ext = data["view1_ext"].get("image_size")
+        kpts0_ext = normalize_keypoints(kpts0_ext, size0_ext).clone()
+        kpts1_ext = normalize_keypoints(kpts1_ext, size1_ext).clone()
+
+        ### Load Road
+
+        # cache positional embeddings
         _kpts0 = F.pad(input=kpts0, pad=(0, 2, 0, 0), mode='constant', value=0)
         _kpts1 = F.pad(input=kpts1, pad=(0, 2, 0, 0), mode='constant', value=0)
+        _kpts0_ext = F.pad(input=kpts0_ext, pad=(0, 2, 0, 0), mode='constant', value=0)
+        _kpts1_ext = F.pad(input=kpts1_ext, pad=(0, 2, 0, 0), mode='constant', value=0)
+
+        R0_ext = data['R0_ext'].type(torch.float32)
+        R1_ext = data['R1_ext'].type(torch.float32)
+        for i in range(R0_ext.shape[0]):
+            _kpts0_ext[i, :, 2:4] = R0_ext[i]
+            _kpts1_ext[i, :, 2:4] = R1_ext[i]
+        _kpts0 = torch.cat((_kpts0,_kpts0_ext),1)
+        _kpts1 = torch.cat((_kpts1,_kpts1_ext),1)
+
+        desc0_ext = data["descriptors0_ext"].contiguous()
+        desc1_ext = data["descriptors1_ext"].contiguous()
+        desc0 = torch.cat((desc0,desc0_ext),1)
+        desc1 = torch.cat((desc1,desc1_ext),1)
+        desc0 = self.input_proj(desc0)
+        desc1 = self.input_proj(desc1)
         encoding0 = self.posenc(_kpts0)
         encoding1 = self.posenc(_kpts1)
 
@@ -489,6 +515,7 @@ class LightGlue4D(nn.Module):
                 encoding1 = encoding1.index_select(-2, keep1)
                 prune1[:, ind1] += 1
 
+        ### Start checking by HOANG
         desc0, desc1 = desc0[..., :m, :], desc1[..., :n, :]
         scores, _ = self.log_assignment[i](desc0, desc1)
         m0, m1, mscores0, mscores1 = filter_matches(scores, self.conf.filter_threshold)

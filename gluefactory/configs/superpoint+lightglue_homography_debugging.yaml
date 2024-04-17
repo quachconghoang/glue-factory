@@ -26,7 +26,8 @@ model:
     matcher:
         name: matchers.lightglue_pe4D
         filter_threshold: 0.1
-        flash: true
+        flash: false
+#        weights: '/home/hoangqc/Datasets/glue/data/superpoint_lightglue_pe4d.pth'
         checkpointed: true
 train:
     seed: 0

@@ -13,3 +13,5 @@ python -m gluefactory.train sp+lg_megadepth \
 ### Dataset preparation
 - Subset smaller 100 times for an hour training
 - 
+
+python -m gluefactory.train sp+glue4d_homography --conf gluefactory/configs/superpoint+glue4d_homography.yaml

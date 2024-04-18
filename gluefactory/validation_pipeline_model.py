@@ -140,6 +140,7 @@ with open(DATA_PATH/'pred_pre.pkl', 'rb') as fp:
     pred = pickle.load(fp)
 
 pred = {**pred, **model.matcher({**data, **pred})}
+loss = model.loss(pred,data)
 
 # desc0 = pred["descriptors0"].contiguous()
 # desc1 = pred["descriptors1"].contiguous()

@@ -268,8 +268,8 @@ class _Dataset(torch.utils.data.Dataset):
         r1 = findRotation(cx=cx, cy=cy, H=H_1toExt)
 
         ### Insert Rotation Keys
-        data0.update({'R': np.array([0,0])})
-        data1.update({'R': np.array([0,0])})
+        data0.update({'R': np.array([0,0],dtype=np.float32)})
+        data1.update({'R': np.array([0,0],dtype=np.float32)})
         data0_ext.update({'R': r0})
         data1_ext.update({'R': r1})
 

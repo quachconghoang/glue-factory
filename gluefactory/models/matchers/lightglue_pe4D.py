@@ -539,7 +539,7 @@ class LightGlue4D(nn.Module):
             "matches1": m1,
             "matching_scores0": mscores0,
             "matching_scores1": mscores1,
-            "stop": i + 1, ### Extra by HoangQC - debuggings?
+#            "stop": i + 1, ### Extra by HoangQC - debuggings? NO! STUPID
             "ref_descriptors0": torch.stack(all_desc0, 1), ### Comments: for debugging?
             "ref_descriptors1": torch.stack(all_desc1, 1), ### Comments: for debugging?
             "log_assignment": scores, ### Comments: for debugging? Meaning?

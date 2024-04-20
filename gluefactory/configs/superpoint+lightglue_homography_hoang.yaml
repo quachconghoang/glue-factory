@@ -1,5 +1,5 @@
 data:
-    name: homographies_extended
+    name: homographies
     data_dir: revisitop1m
     train_size: 150000
     val_size: 2000

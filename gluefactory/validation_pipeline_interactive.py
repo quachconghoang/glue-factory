@@ -228,7 +228,7 @@ model = get_model(conf.model.name)(conf.model).to(device)
 
 pred = model(data)
 pred = {**pred, **model.matcher({**data, **pred})}
-
+loss = model.loss(pred,data)
 
 # with open(DATA_PATH/'data.pkl', 'wb') as fp:
 #     pickle.dump(data, fp)

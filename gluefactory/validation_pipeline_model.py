@@ -12,6 +12,7 @@ from gluefactory import __module_name__, logger
 from gluefactory.datasets import get_dataset
 from gluefactory.settings import EVAL_PATH, TRAINING_PATH
 from gluefactory.utils.image import read_image
+from gluefactory.utils.tensor import batch_to_device
 from gluefactory.geometry.homography import (
     compute_homography,
     sample_homography_corners,
@@ -127,8 +128,8 @@ for module in conf.train.get("submodules", []) + [__module_name__]:
 
 conf.train = OmegaConf.merge(default_train_conf, conf.train)
 data_conf = copy.deepcopy(conf.data)
-# device = "cuda" if torch.cuda.is_available() else "cpu"
-device = "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+# device = "cpu"
 logger.info(f"Using device {device}")
 
 model = get_model(conf.model.name)(conf.model).to(device)
@@ -138,6 +139,9 @@ with open(DATA_PATH/'data.pkl', 'rb') as fp:
 
 with open(DATA_PATH/'pred_pre.pkl', 'rb') as fp:
     pred = pickle.load(fp)
+
+# if device == "cuda":
+#     data = batch_to_device(data, device, non_blocking=True)
 
 pred = {**pred, **model.matcher({**data, **pred})}
 loss = model.loss(pred,data)

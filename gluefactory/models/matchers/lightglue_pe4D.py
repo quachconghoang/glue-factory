@@ -488,8 +488,8 @@ class LightGlue4D(nn.Module):
             else:
                 desc0, desc1 = self.transformers[i](desc0, desc1, encoding0, encoding1)
             if self.training or i == self.conf.n_layers - 1:
-                all_desc0.append(desc0)
-                all_desc1.append(desc1)
+                all_desc0.append(desc0[:,:m,:])
+                all_desc1.append(desc1[:,:n,:])
                 continue  # no early stopping or adaptive width at last layer
 
             # only for eval

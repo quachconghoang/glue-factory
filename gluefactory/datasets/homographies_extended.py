@@ -43,12 +43,14 @@ def sample_homography(img, conf: dict, size: list): ### NEED TO CHANGE
     data["image_size"] = np.array(size, dtype=np.float32)
     return data
 
-def findRotation(cx: float, cy: float, H: np.array):
+def findRotation(cx: float, cy: float, H: np.array, error: float = 0):
     ct = np.array([cx, cy, 1])
     p = np.dot(H, ct)
     pw = np.array([p[0] / p[2], p[1] / p[2]])  # Warp Center
-    rx = - (pw[0] - cx) / cx  # Right -> +
-    ry = (pw[1] - cy) / cy  # Up -> +
+    err_x, err_y = np.random.uniform(-error,+error, size=2)
+    # print('err x-y', err_x, err_y,  ' - base:', error)
+    rx = - (pw[0]+err_x - cx) / cx  # Right -> +
+    ry = (pw[1]+err_y - cy) / cy  # Up -> +
     return np.array([rx, ry],dtype=np.float32)
 
 class HomographyExtendedDataset(BaseDataset):
@@ -79,6 +81,9 @@ class HomographyExtendedDataset(BaseDataset):
             "name": "dark",
             "p": 0.75,
             # 'difficulty': 1.0,  # currently unused
+        },
+        "multiview": {
+            "rotation_error": 0
         },
         # feature loading
         "load_features": {
@@ -264,8 +269,9 @@ class _Dataset(torch.utils.data.Dataset):
 
         cx = ps[0]/2
         cy = ps[1]/2
-        r0 = findRotation(cx=cx, cy=cy, H=H_0toExt)
-        r1 = findRotation(cx=cx, cy=cy, H=H_1toExt)
+        err = self.conf.multiview.rotation_error
+        r0 = findRotation(cx=cx, cy=cy, H=H_0toExt, error= err)
+        r1 = findRotation(cx=cx, cy=cy, H=H_1toExt, error= err)
 
         ### Insert Rotation Keys
         data0.update({'R': np.array([0,0],dtype=np.float32)})

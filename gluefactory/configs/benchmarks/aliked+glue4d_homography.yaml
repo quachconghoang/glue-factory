@@ -1,5 +1,5 @@
 data:
-    name: homographies
+    name: homographies_extended
     data_dir: revisitop1m
     train_size: 150000
     val_size: 2000
@@ -11,20 +11,22 @@ data:
     photometric:
         name: lg
 model:
-    name: two_view_pipeline
+    name: extended_two_view_pipeline
     extractor:
-        name: extractors.sift
-        backend: pycolmap_cuda
-        max_num_keypoints: 1024
-        force_num_keypoints: True
-        nms_radius: 3
+        name: extractors.aliked
+        max_num_keypoints: 512
+        detection_threshold: 0.0
         trainable: False
+    detector:
+        name: null
+    descriptor:
+        name: null
     ground_truth:
         name: matchers.homography_matcher
         th_positive: 3
         th_negative: 3
     matcher:
-        name: matchers.lightglue
+        name: matchers.lightglue_pe4D
         filter_threshold: 0.1
         flash: false
         checkpointed: true
@@ -46,6 +48,3 @@ benchmarks:
       eval:
         estimator: opencv
         ransac_th: 0.5
-      model:
-        extractor:
-          nms_radius: 0

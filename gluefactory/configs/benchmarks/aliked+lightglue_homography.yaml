@@ -13,12 +13,14 @@ data:
 model:
     name: two_view_pipeline
     extractor:
-        name: extractors.sift
-        backend: pycolmap_cuda
-        max_num_keypoints: 1024
-        force_num_keypoints: True
-        nms_radius: 3
+        name: extractors.aliked
+        max_num_keypoints: 512
+        detection_threshold: 0.0
         trainable: False
+    detector:
+        name: null
+    descriptor:
+        name: null
     ground_truth:
         name: matchers.homography_matcher
         th_positive: 3
@@ -46,6 +48,3 @@ benchmarks:
       eval:
         estimator: opencv
         ransac_th: 0.5
-      model:
-        extractor:
-          nms_radius: 0

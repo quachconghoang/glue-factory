@@ -42,15 +42,21 @@ def rotate_half(x: torch.Tensor) -> torch.Tensor:
 def apply_cached_rotary_emb(freqs: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     return (t * freqs[0]) + (rotate_half(t) * freqs[1])
 
-from kan import KAN
-
+# from kan import KAN
+from efficient_kan import KAN
 class LearnableFourierPositionalEncoding(nn.Module):
     def __init__(self, M: int, dim: int, F_dim: int = None, gamma: float = 1.0) -> None:
         super().__init__()
         F_dim = F_dim if F_dim is not None else dim
         self.gamma = gamma
         # self.Wr = nn.Linear(M, F_dim // 2, bias=False)
-        self.Wr = KAN(width=[M, F_dim // 2],  grid=5, k=3, noise_scale=0.1, noise_scale_base=1.)
+
+        ### pyKAN
+        # self.Wr = KAN(width=[M, F_dim // 2],  grid=5, k=3, noise_scale=0.1, noise_scale_base=1.)
+
+        ### Efficient_KAN
+        self.Wr = KAN([M, F_dim // 2], grid_size=5, spline_order=3, scale_noise=0.1, scale_base=1.)
+
         # nn.init.normal_(self.Wr.weight.data, mean=0, std=self.gamma**-2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

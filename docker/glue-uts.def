@@ -24,9 +24,9 @@ From: nvidia/cuda:11.8.0-devel-ubuntu22.04
 
 ###	pip3 install torch torchvision  --index-url https://download.pytorch.org/whl/cu118
 ### conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
-    pip3 install torch==2.1.2+cu118 torchvision==0.16.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
-    pip3 install ninja git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
-    pip3 install nerfstudio
+    pip3 install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
+### pip3 install ninja git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
+### pip3 install nerfstudio
 ### HLOC - COLMAP
 ### SPECULATOR AI
 ### pip3 install spectacularAI[full]
@@ -34,6 +34,7 @@ From: nvidia/cuda:11.8.0-devel-ubuntu22.04
 	pip3 install numpy scipy opencv-python tqdm matplotlib h5py
 	pip3 install omegaconf tensorboard albumentations kornia seaborn joblib
 	pip3 install natsort
+	pip3 install pykan==0.0.5
 
 ### installing python libs
 ###	cd home
